@@ -61,6 +61,7 @@ type Session struct {
 	// Mutable temporaries
 	ySpectrum      []complex128
 	boundaryF0List []float64
+	zeroCrossings  *zeroCrossings
 	f0Candidates   [][]float64
 	f0Scores       [][]float64
 	f0Candidate    []float64
@@ -108,7 +109,7 @@ func NewSession(x []float64, fs int, option *Option) *Session {
 	s.fft = fourier.NewFFT(s.fftSize)
 
 	s.ySpectrum = make([]complex128, s.fftSize)
-
+	s.zeroCrossings = newZeroCrossings(s.yLength)
 	s.f0Candidates = make([][]float64, s.numberOfBands)
 	s.f0Scores = make([][]float64, s.numberOfBands)
 	for i := 0; i < s.numberOfBands; i++ {

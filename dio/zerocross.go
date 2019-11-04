@@ -18,6 +18,19 @@ type zeroCrossings struct {
 	numberOfDips              int
 }
 
+func newZeroCrossings(n int) *zeroCrossings {
+	return &zeroCrossings{
+		negativeIntervalLocations: make([]float64, n),
+		positiveIntervalLocations: make([]float64, n),
+		peakIntervalLocations:     make([]float64, n),
+		dipIntervalLocations:      make([]float64, n),
+		negativeIntervals:         make([]float64, n),
+		positiveIntervals:         make([]float64, n),
+		peakIntervals:             make([]float64, n),
+		dipIntervals:              make([]float64, n),
+	}
+}
+
 // zeroCrossingEngine calculates the zero crossing points from positive to
 // negative. Thanks to Custom.Maid http://custom-made.seesaa.net/ (2012/8/19)
 func zeroCrossingEngine(filteredSignal []float64, yLength int,
@@ -57,47 +70,4 @@ func zeroCrossingEngine(filteredSignal []float64, yLength int,
 	}
 
 	return count - 1
-}
-
-// getFourZeroCrossingIntervals() calculates four zero-crossing intervals.
-// (1) Zero-crossing going from negative to positive.
-// (2) Zero-crossing going from positive to negative.
-// (3) Peak, and (4) dip. (3) and (4) are calculated from the zero-crossings of
-// the differential of waveform.
-func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64, zeroCrossings *zeroCrossings) {
-	// xLength / 4 (old version) is fixed at 2013/07/14
-	maximumNumber := s.yLength
-	zeroCrossings.negativeIntervalLocations = make([]float64, maximumNumber)
-	zeroCrossings.positiveIntervalLocations = make([]float64, maximumNumber)
-	zeroCrossings.peakIntervalLocations = make([]float64, maximumNumber)
-	zeroCrossings.dipIntervalLocations = make([]float64, maximumNumber)
-	zeroCrossings.negativeIntervals = make([]float64, maximumNumber)
-	zeroCrossings.positiveIntervals = make([]float64, maximumNumber)
-	zeroCrossings.peakIntervals = make([]float64, maximumNumber)
-	zeroCrossings.dipIntervals = make([]float64, maximumNumber)
-
-	zeroCrossings.numberOfNegatives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.actualFS, zeroCrossings.negativeIntervalLocations,
-		zeroCrossings.negativeIntervals)
-
-	for i := 0; i < s.yLength; i++ {
-		filteredSignal[i] = -filteredSignal[i]
-	}
-	zeroCrossings.numberOfPositives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.actualFS, zeroCrossings.positiveIntervalLocations,
-		zeroCrossings.positiveIntervals)
-
-	for i := 0; i < s.yLength-1; i++ {
-		filteredSignal[i] = filteredSignal[i] - filteredSignal[i+1]
-	}
-	zeroCrossings.numberOfPeaks = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.actualFS, zeroCrossings.peakIntervalLocations,
-		zeroCrossings.peakIntervals)
-
-	for i := 0; i < s.yLength-1; i++ {
-		filteredSignal[i] = -filteredSignal[i]
-	}
-	zeroCrossings.numberOfDips = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.actualFS, zeroCrossings.dipIntervalLocations,
-		zeroCrossings.dipIntervals)
 }
