@@ -1,8 +1,9 @@
-package world
+package dio
 
 import (
 	"math"
 
+	"github.com/but80/go-world/constant"
 	"github.com/but80/go-world/internal/common"
 	"github.com/but80/go-world/internal/matlab"
 	"gonum.org/v1/gonum/fourier"
@@ -79,7 +80,7 @@ func (s *DioSession) getSpectrumForEstimation() {
 	s.fft.Coefficients(s.ySpectrum[:s.fftSize/2+1], y)
 
 	// Low cut filtering (from 0.1.4). Cut off frequency is 50.0 Hz.
-	cutoffInSample := matlab.Round(s.actualFS / cutOff)
+	cutoffInSample := matlab.Round(s.actualFS / constant.CutOff)
 	designLowCutFilter(cutoffInSample*2+1, s.fftSize, y)
 
 	filterSpectrum := make([]complex128, s.fftSize/2+1)
@@ -108,7 +109,7 @@ func (s *DioSession) getF0CandidatesAndScores() {
 		s.getF0CandidateFromRawEvent(s.boundaryF0List[i])
 		for j := 0; j < s.f0Length; j++ {
 			// A way to avoid zero division
-			s.f0Scores[i][j] = s.f0Score[j] / (s.f0Candidate[j] + mySafeGuardMinimum)
+			s.f0Scores[i][j] = s.f0Score[j] / (s.f0Candidate[j] + constant.MySafeGuardMinimum)
 			s.f0Candidates[i][j] = s.f0Candidate[j]
 		}
 	}
@@ -150,7 +151,7 @@ func (s *DioSession) fixStep1(bestF0Contour []float64, voiceRangeMinimum int, f0
 	}
 	for i := voiceRangeMinimum; i < s.f0Length; i++ {
 		if math.Abs((f0Base[i]-f0Base[i-1])/
-			(mySafeGuardMinimum+f0Base[i])) <
+			(constant.MySafeGuardMinimum+f0Base[i])) <
 			s.option.AllowedRange {
 			f0Step1[i] = f0Base[i]
 		} else {
@@ -423,7 +424,7 @@ func (s *DioSession) getF0CandidateContourSub(interpolatedF0Set [4][]float64, bo
 		if s.f0Candidate[i] > boundaryF0 || s.f0Candidate[i] < boundaryF0/2.0 ||
 			s.f0Candidate[i] > s.option.F0Ceil || s.f0Candidate[i] < s.option.F0Floor {
 			s.f0Candidate[i] = 0.0
-			s.f0Score[i] = maximumValue
+			s.f0Score[i] = constant.MaximumValue
 		}
 	}
 }
@@ -436,7 +437,7 @@ func (s *DioSession) getF0CandidateContour(zeroCrossings *zeroCrossings, boundar
 		checkEvent(zeroCrossings.numberOfPeaks-2)*
 		checkEvent(zeroCrossings.numberOfDips-2) {
 		for i := 0; i < s.f0Length; i++ {
-			s.f0Score[i] = maximumValue
+			s.f0Score[i] = constant.MaximumValue
 			s.f0Candidate[i] = 0.0
 		}
 		return
@@ -559,7 +560,7 @@ func NewDioSession(x []float64, fs int, option *DioOption) *DioSession {
 	s.yLength = 1 + len(s.x)/s.decimationRatio
 	s.actualFS = float64(s.fs) / float64(s.decimationRatio)
 	s.fftSize = common.GetSuitableFFTSize(s.yLength +
-		matlab.Round(s.actualFS/cutOff)*2 + 1 +
+		matlab.Round(s.actualFS/constant.CutOff)*2 + 1 +
 		4*int(1.0+s.actualFS/s.boundaryF0List[0]/2.0))
 	s.fft = fourier.NewFFT(s.fftSize)
 
@@ -593,8 +594,8 @@ func (s *DioSession) Run() ([]float64, []float64) {
 func InitializeDioOption(option *DioOption) {
 	// You can change default parameters.
 	option.ChannelsInOctave = 2.0
-	option.F0Ceil = ceilF0
-	option.F0Floor = floorF0
+	option.F0Ceil = constant.CeilF0
+	option.F0Floor = constant.FloorF0
 	option.FramePeriod = 5
 
 	// You can use the value from 1 to 12.

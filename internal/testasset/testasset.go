@@ -1,6 +1,6 @@
-package world
+package testasset
 
-var testData = []float64{
+var SampleWave = []float64{
 	0.029205322266,
 	0.058166503906,
 	0.095520019531,

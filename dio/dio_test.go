@@ -1,10 +1,14 @@
-package world
+package dio
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/but80/go-world/internal/testasset"
+)
 
 func ExampleDio() {
 	fs := 44100
-	x := testData
+	x := testasset.SampleWave
 	var option DioOption
 	InitializeDioOption(&option)
 
