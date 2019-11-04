@@ -9,11 +9,10 @@ import (
 func ExampleDio() {
 	fs := 44100
 	x := testasset.SampleWave
-	var option DioOption
-	InitializeDioOption(&option)
+	option := NewOption()
 
-	s := NewDioSession(x, fs, &option)
-	temporalPositions, f0 := s.Run()
+	s := NewSession(x, fs, option)
+	temporalPositions, f0 := s.Estimate()
 
 	for i := range f0 {
 		fmt.Printf("%05.3f: %05.1f\n", temporalPositions[i], f0[i])
