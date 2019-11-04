@@ -1,0 +1,138 @@
+#include <stdio.h>
+#include <string.h>
+#include "world/matlabfunctions.h"
+#include "world/common.h"
+#include "world/fft.h"
+#include "world/dio.h"
+
+#include "testdata.h"
+
+void exampleInterp1() {
+	double x [] = { 0,    2,          6 };
+	double y [] = {10,   20,          0 };
+	double xi[] = { 0, 1, 2, 3, 4, 5, 6 };
+	double yi[] = { 0, 0, 0, 0, 0, 0, 0 };
+	//     result  10 15 20 15 10  5  0
+
+	int x_length = sizeof(x) / sizeof(x[0]);
+	int xi_length = sizeof(xi) / sizeof(xi[0]);
+	interp1(x, y, x_length, xi, xi_length, yi);
+	for (int i=0; i<xi_length; i++) {
+		printf("%4.1f\n", yi[i]);
+	}
+
+	// Output:
+	// 10.0
+	// 15.0
+	// 20.0
+	// 15.0
+	// 10.0
+	//  5.0
+	//  0.0
+}
+
+void exampleInterp1Q() {
+	double x = 0;
+	double shift = 2;
+	double y [] = {10,   20,    0 };
+	double xi[] = { 0, 1, 2, 3, 4 };
+	double yi[] = { 0, 0, 0, 0, 0 };
+	//     result  10 15 20 10  0
+
+	int x_length = sizeof(y) / sizeof(y[0]);
+	int xi_length = sizeof(xi) / sizeof(xi[0]);
+	interp1Q(x, shift, y, x_length, xi, xi_length, yi);
+	for (int i=0; i<xi_length; i++) {
+		printf("%4.1f\n", yi[i]);
+	}
+
+	// Output:
+	// 10.0
+	// 15.0
+	// 20.0
+	// 10.0
+	//  0.0
+}
+
+void exampleDCCorrection() {
+	double input [7] = {0, 2, 1, 0, 1, 2, 8};
+	double output[7] = {0, 0, 0, 0, 0, 0, 0};
+	int current_f0 = 64; // index=4
+	int fs = 256;
+	int fft_size = 16;
+	DCCorrection(input, current_f0, fs, fft_size, output);
+	int output_length = sizeof(output) / sizeof(output[0]);
+	for (int i=0; i<output_length; i++) {
+		printf("%4.1f\n", output[i]);
+	}
+}
+
+void exampleFFT() {
+	int fft_size = 8;
+	double y[8] = {1, -1, .5, -.5, .25, -.25, .125, 0};
+	fft_complex y_spectrum[8];
+	fft_plan forwardFFT = fft_plan_dft_r2c_1d(fft_size, y, y_spectrum, FFT_FORWARD);
+	fft_execute(forwardFFT);
+	for (int i=0; i<fft_size; i++) {
+		printf("%+4.3f +%4.3f\n", y_spectrum[i][0], y_spectrum[i][1]);
+	}
+	printf("\n");
+
+	double y2[8] = {0};
+	fft_plan backwardFFT = fft_plan_dft_c2r_1d(fft_size, y_spectrum, y2, FFT_BACKWARD);
+	fft_execute(backwardFFT);
+	for (int i=0; i<fft_size; i++) {
+		printf("%+4.3f\n", y2[i]);
+	}
+	printf("\n");
+}
+
+void exampleDio() {
+	int fs = 44100;
+	double *x = test_data;
+	int x_length = sizeof(test_data) / sizeof(test_data[0]);
+	DioOption option;
+	InitializeDioOption(&option);
+	int f0_length = GetSamplesForDIO(fs, x_length, option.frame_period);
+	double *temporalPositions = new double[f0_length];
+	double *f0 = new double[f0_length];
+
+	Dio(x, x_length, fs, &option, temporalPositions, f0);
+
+	for (int i=0; i<f0_length; i++) {
+		printf("%05.3f: %05.1f\n", temporalPositions[i], f0[i]);
+	}
+
+	delete[] f0;
+	delete[] temporalPositions;
+}
+
+int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		printf("Usage: make-testdata <function name>\n");
+		return 1;
+	}
+	const char *name = argv[1];
+	if (strcmp(name, "interp1") == 0) {
+		exampleInterp1();
+		return 0;
+	}
+	if (strcmp(name, "interp1Q") == 0) {
+		exampleInterp1Q();
+		return 0;
+	}
+	if (strcmp(name, "DCCorrection") == 0) {
+		exampleDCCorrection();
+		return 0;
+	}
+	if (strcmp(name, "FFT") == 0) {
+		exampleFFT();
+		return 0;
+	}
+	if (strcmp(name, "Dio") == 0) {
+		exampleDio();
+		return 0;
+	}
+	printf("function name \"%s\" is undefined\n", name);
+	return 1;
+}
