@@ -7,13 +7,11 @@ func ExampleDio() {
 	x := testData
 	var option DioOption
 	InitializeDioOption(&option)
-	f0Length := GetSamplesForDIO(fs, len(x), option.FramePeriod)
-	temporalPositions := make([]float64, f0Length)
-	f0 := make([]float64, f0Length)
 
-	Dio(x, fs, &option, temporalPositions, f0)
+	s := NewDioSession(x, fs, &option)
+	temporalPositions, f0 := s.Run()
 
-	for i := 0; i < f0Length; i++ {
+	for i := range f0 {
 		fmt.Printf("%05.3f: %05.1f\n", temporalPositions[i], f0[i])
 	}
 

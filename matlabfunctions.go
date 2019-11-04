@@ -15,25 +15,23 @@ func matlabRound(x float64) int {
 //
 // Input:
 //   x              : Input vector
-//   xLength        : Length of x
 //   edges          : Input matrix (1-dimension)
-//   edgesLength    : Length of edges
 //
 // Output:
 //   index          : Result counted in vector x
 // Caution:
 //   Lengths of index and edges must be the same.
-func histc(x []float64, xLength int, edges []float64, edgesLength int, index []int) {
+func histc(x []float64, edges []float64, index []int) {
 	count := 1
 
 	i := 0
-	for ; i < edgesLength; i++ {
+	for ; i < len(edges); i++ {
 		index[i] = 1
 		if edges[i] >= x[0] {
 			break
 		}
 	}
-	for ; i < edgesLength; i++ {
+	for ; i < len(edges); i++ {
 		if edges[i] < x[count] {
 			index[i] = count
 		} else {
@@ -41,12 +39,12 @@ func histc(x []float64, xLength int, edges []float64, edgesLength int, index []i
 			i--
 			count++
 		}
-		if count == xLength {
+		if count == len(x) {
 			break
 		}
 	}
 	count--
-	for i++; i < edgesLength; i++ {
+	for i++; i < len(edges); i++ {
 		index[i] = count
 	}
 }
@@ -58,28 +56,26 @@ func histc(x []float64, xLength int, edges []float64, edgesLength int, index []i
 // Input:
 //   x          : Input vector (Time axis)
 //   y          : Values at x[n]
-//   xLength   : Length of x (Length of y must be the same)
 //   xi         : Required vector
-//   xiLength   : Length of xi (Length of yi must be the same)
 //
 // Output:
 //   yi         : Interpolated vector
-func interp1(x, y []float64, xLength int, xi []float64, xiLength int, yi []float64) {
-	h := make([]float64, xLength-1)
-	s := make([]float64, xiLength)
-	k := make([]int, xiLength)
+func interp1(x, y []float64, xi []float64, yi []float64) {
+	h := make([]float64, len(x)-1)
+	s := make([]float64, len(xi))
+	k := make([]int, len(xi))
 
-	for i := 0; i < xLength-1; i++ {
+	for i := 0; i < len(x)-1; i++ {
 		h[i] = x[i+1] - x[i]
 	}
 
-	histc(x, xLength, xi, xiLength, k)
+	histc(x, xi, k)
 
-	for i := 0; i < xiLength; i++ {
+	for i := range xi {
 		s[i] = (xi[i] - x[k[i]-1]) / h[k[i]-1]
 	}
 
-	for i := 0; i < xiLength; i++ {
+	for i := range xi {
 		yi[i] = y[k[i]-1] + s[i]*(y[k[i]]-y[k[i]-1])
 	}
 }
