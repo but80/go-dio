@@ -1,6 +1,7 @@
-package world
+package matlab
 
-func matlabRound(x float64) int {
+// Round calculates rounding.
+func Round(x float64) int {
 	if 0 < x {
 		return int(x + .5)
 	}
@@ -49,9 +50,9 @@ func histc(x []float64, edges []float64, index []int) {
 	}
 }
 
-// interp1 interpolates to find yi, the values of the underlying function Y
+// Interp1 interpolates to find yi, the values of the underlying function Y
 // at the points in the vector or array xi. x must be a vector.
-// http://www.mathworks.co.jp/help/techdoc/ref/interp1.html
+// http://www.mathworks.co.jp/help/techdoc/ref/Interp1.html
 //
 // Input:
 //   x          : Input vector (Time axis)
@@ -60,7 +61,7 @@ func histc(x []float64, edges []float64, index []int) {
 //
 // Output:
 //   yi         : Interpolated vector
-func interp1(x, y []float64, xi []float64, yi []float64) {
+func Interp1(x, y []float64, xi []float64, yi []float64) {
 	h := make([]float64, len(x)-1)
 	s := make([]float64, len(xi))
 	k := make([]int, len(xi))
@@ -80,7 +81,7 @@ func interp1(x, y []float64, xi []float64, yi []float64) {
 	}
 }
 
-// decimate carries out down sampling by both IIR and FIR filters.
+// Decimate carries out down sampling by both IIR and FIR filters.
 // Filter coeffiencts are based on filterForDecimate().
 //
 // Input:
@@ -89,7 +90,7 @@ func interp1(x, y []float64, xi []float64, yi []float64) {
 //                (fs after down sampling is fs/r)
 // Output:
 //   y          : Output signal
-func decimate(x []float64, r int, y []float64) {
+func Decimate(x []float64, r int, y []float64) {
 	xLength := len(x)
 	const nFact = 9
 	tmp1 := make([]float64, xLength+nFact*2)
@@ -125,7 +126,7 @@ func decimate(x []float64, r int, y []float64) {
 }
 
 // filterForDecimate calculates the coefficients of low-pass filter and
-// carries out the filtering. This function is only used for decimate().
+// carries out the filtering. This function is only used for Decimate().
 func filterForDecimate(x []float64, r int, y []float64) {
 	xLength := len(x)
 

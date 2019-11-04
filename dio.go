@@ -3,6 +3,8 @@ package world
 import (
 	"math"
 
+	"github.com/but80/go-world/internal/common"
+	"github.com/but80/go-world/internal/matlab"
 	"gonum.org/v1/gonum/fourier"
 )
 
@@ -56,7 +58,7 @@ func (s *DioSession) getSpectrumForEstimation() {
 
 	// Downsampling
 	if s.decimationRatio != 1 {
-		decimate(s.x, s.decimationRatio, y)
+		matlab.Decimate(s.x, s.decimationRatio, y)
 	} else {
 		copy(y[:len(s.x)], s.x)
 	}
@@ -77,7 +79,7 @@ func (s *DioSession) getSpectrumForEstimation() {
 	s.fft.Coefficients(s.ySpectrum[:s.fftSize/2+1], y)
 
 	// Low cut filtering (from 0.1.4). Cut off frequency is 50.0 Hz.
-	cutoffInSample := matlabRound(s.actualFS / cutOff)
+	cutoffInSample := matlab.Round(s.actualFS / cutOff)
 	designLowCutFilter(cutoffInSample*2+1, s.fftSize, y)
 
 	filterSpectrum := make([]complex128, s.fftSize/2+1)
@@ -91,7 +93,7 @@ func (s *DioSession) getSpectrumForEstimation() {
 // getF0CandidateFromRawEvent() calculates F0 candidate contour in 1-ch signal
 func (s *DioSession) getF0CandidateFromRawEvent(boundaryF0 float64) {
 	filteredSignal := make([]float64, s.fftSize)
-	s.getFilteredSignal(matlabRound(s.actualFS/boundaryF0/2.0), filteredSignal)
+	s.getFilteredSignal(matlab.Round(s.actualFS/boundaryF0/2.0), filteredSignal)
 
 	var zeroCrossings zeroCrossings
 	s.getFourZeroCrossingIntervals(filteredSignal, &zeroCrossings)
@@ -292,7 +294,7 @@ func (s *DioSession) getFilteredSignal(halfAverageLength int, filteredSignal []f
 	lpf := make([]float64, s.fftSize)
 	// Nuttall window is used as a low-pass filter.
 	// Cutoff frequency depends on the window length.
-	nuttallWindow(lpf[:halfAverageLength*4])
+	common.NuttallWindow(lpf[:halfAverageLength*4])
 
 	lpfSpectrum := make([]complex128, s.fftSize/2+1)
 	s.fft.Coefficients(lpfSpectrum, lpf)
@@ -445,16 +447,16 @@ func (s *DioSession) getF0CandidateContour(zeroCrossings *zeroCrossings, boundar
 		interpolatedF0Set[i] = make([]float64, s.f0Length)
 	}
 
-	interp1(zeroCrossings.negativeIntervalLocations[:zeroCrossings.numberOfNegatives],
+	matlab.Interp1(zeroCrossings.negativeIntervalLocations[:zeroCrossings.numberOfNegatives],
 		zeroCrossings.negativeIntervals,
 		s.temporalPositions, interpolatedF0Set[0])
-	interp1(zeroCrossings.positiveIntervalLocations[:zeroCrossings.numberOfPositives],
+	matlab.Interp1(zeroCrossings.positiveIntervalLocations[:zeroCrossings.numberOfPositives],
 		zeroCrossings.positiveIntervals,
 		s.temporalPositions, interpolatedF0Set[1])
-	interp1(zeroCrossings.peakIntervalLocations[:zeroCrossings.numberOfPeaks],
+	matlab.Interp1(zeroCrossings.peakIntervalLocations[:zeroCrossings.numberOfPeaks],
 		zeroCrossings.peakIntervals,
 		s.temporalPositions, interpolatedF0Set[2])
-	interp1(zeroCrossings.dipIntervalLocations[:zeroCrossings.numberOfDips],
+	matlab.Interp1(zeroCrossings.dipIntervalLocations[:zeroCrossings.numberOfDips],
 		zeroCrossings.dipIntervals,
 		s.temporalPositions, interpolatedF0Set[3])
 
@@ -553,11 +555,11 @@ func NewDioSession(x []float64, fs int, option *DioOption) *DioSession {
 	}
 
 	// normalization
-	s.decimationRatio = myMaxInt(myMinInt(option.Speed, 12), 1)
+	s.decimationRatio = common.MaxInt(common.MinInt(option.Speed, 12), 1)
 	s.yLength = 1 + len(s.x)/s.decimationRatio
 	s.actualFS = float64(s.fs) / float64(s.decimationRatio)
-	s.fftSize = getSuitableFFTSize(s.yLength +
-		matlabRound(s.actualFS/cutOff)*2 + 1 +
+	s.fftSize = common.GetSuitableFFTSize(s.yLength +
+		matlab.Round(s.actualFS/cutOff)*2 + 1 +
 		4*int(1.0+s.actualFS/s.boundaryF0List[0]/2.0))
 	s.fft = fourier.NewFFT(s.fftSize)
 

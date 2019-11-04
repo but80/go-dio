@@ -1,4 +1,4 @@
-package world
+package matlab
 
 import "fmt"
 
@@ -8,7 +8,7 @@ func ExampleInterp1() {
 	xi := []float64{0, 1, 2, 3, 4, 5, 6}
 	yi := []float64{0, 0, 0, 0, 0, 0, 0}
 
-	interp1(x, y, xi, yi)
+	Interp1(x, y, xi, yi)
 	for _, v := range yi {
 		fmt.Printf("%4.1f\n", v)
 	}
