@@ -1,10 +1,35 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include <cstdint>
+#include <cstdlib>
 #include "world/matlabfunctions.h"
 #include "world/common.h"
 #include "world/fft.h"
 #include "world/dio.h"
 #include "sndfile.h"
+
+// from https://github.com/lazybeaver/xorshift
+
+class XorShift64Star {
+private:
+	uint64_t state;
+
+public:
+	XorShift64Star(uint64_t seed) : state(seed) {
+	}
+
+	uint64_t next() {
+		this->state ^= (this->state >> 12);
+		this->state ^= (this->state << 25);
+		this->state ^= (this->state >> 27);
+		return this->state * 2685821657736338717;
+	}
+
+	double nextDouble() {
+		return (double)this->next() / (double)UINT64_MAX;
+	}
+};
 
 void exampleInterp1() {
 	double x [] = { 0,    2,          6 };
@@ -88,7 +113,7 @@ void exampleFFT() {
 
 #define bufSize = 100
 
-void exampleDio(const char *file) {
+void exampleDio(const char *file, int noiseDB) {
 	SF_INFO info;
 	SNDFILE *f = sf_open(file, SFM_READ, &info);
 	if (f == NULL) {
@@ -109,6 +134,13 @@ void exampleDio(const char *file) {
 		return;
 	}
 
+	double noiseAmp = pow(2.0, noiseDB);
+	XorShift64Star r(1);
+	for (int i=0; i<info.frames; i++) {
+		double v = r.nextDouble();
+		x[i] += (v - .5) * 2.0 * noiseAmp;
+	}
+
 	int fs = info.samplerate;
 	int x_length = info.frames;
 	DioOption option;
@@ -120,7 +152,7 @@ void exampleDio(const char *file) {
 	Dio(x, x_length, fs, &option, temporalPositions, f0);
 
 	for (int i=0; i<f0_length; i++) {
-		printf("%05.3f: %07.3f\n", temporalPositions[i], f0[i]);
+		printf("%05.3f: %05.1f\n", temporalPositions[i], f0[i]);
 	}
 
 	delete[] x;
@@ -129,12 +161,13 @@ void exampleDio(const char *file) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 3) {
-		printf("Usage: make-testdata <function name> <wav file>\n");
+	if (argc < 4) {
+		printf("Usage: make-testdata <function name> <wav file> <noise [DB]>\n");
 		return 1;
 	}
 	const char *fn = argv[1];
 	const char *wav = argv[2];
+	int noiseDB = atoi(argv[3]);
 	if (strcmp(fn, "interp1") == 0) {
 		exampleInterp1();
 		return 0;
@@ -152,7 +185,7 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	if (strcmp(fn, "Dio") == 0) {
-		exampleDio(wav);
+		exampleDio(wav, noiseDB);
 		return 0;
 	}
 	printf("function name \"%s\" is undefined\n", fn);
