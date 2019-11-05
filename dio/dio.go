@@ -52,12 +52,12 @@ type Session struct {
 	// Immutable temporaries
 	f0Length          int
 	yLength           int
-	decimationRatio   int
+	decimationRatio   int // for downsampling (default=1)
 	actualFS          float64
 	fftSize           int
 	fft               *fourier.FFT
 	numberOfBands     int
-	voiceRangeMinimum int
+	voiceRangeMinimum int // [frames]
 
 	// Mutable temporaries
 	ySpectrum      []complex128

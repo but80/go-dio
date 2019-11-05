@@ -1,7 +1,10 @@
 package constant
 
 const CutOff = 50.0
+
+// MySafeGuardMinimum is the value added to denominator to prevent zero division.
 const MySafeGuardMinimum = 0.000000000001
+
 const FloorF0 = 71.0
 const CeilF0 = 800.0
 
