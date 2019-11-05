@@ -50,13 +50,14 @@ type Session struct {
 	option *Option   // Struct to order the parameter for DIO
 
 	// Immutable temporaries
-	f0Length        int
-	yLength         int
-	decimationRatio int
-	actualFS        float64
-	fftSize         int
-	fft             *fourier.FFT
-	numberOfBands   int
+	f0Length          int
+	yLength           int
+	decimationRatio   int
+	actualFS          float64
+	fftSize           int
+	fft               *fourier.FFT
+	numberOfBands     int
+	voiceRangeMinimum int
 
 	// Mutable temporaries
 	ySpectrum      []complex128
@@ -89,8 +90,10 @@ func NewSession(x []float64, fs int, option *Option) *Session {
 		fs:     fs,
 		option: option,
 
-		f0Length:       f0Length,
-		numberOfBands:  numberOfBands,
+		f0Length:          f0Length,
+		numberOfBands:     numberOfBands,
+		voiceRangeMinimum: int(0.5+1000.0/option.FramePeriod/option.F0Floor)*2 + 1,
+
 		boundaryF0List: boundaryF0List,
 		f0Candidate:    make([]float64, f0Length),
 		f0Score:        make([]float64, f0Length),

@@ -4,8 +4,7 @@
 #include "world/common.h"
 #include "world/fft.h"
 #include "world/dio.h"
-
-#include "testdata.h"
+#include "sndfile.h"
 
 void exampleInterp1() {
 	double x [] = { 0,    2,          6 };
@@ -87,10 +86,31 @@ void exampleFFT() {
 	printf("\n");
 }
 
-void exampleDio() {
-	int fs = 44100;
-	double *x = test_data;
-	int x_length = sizeof(test_data) / sizeof(test_data[0]);
+#define bufSize = 100
+
+void exampleDio(const char *file) {
+	SF_INFO info;
+	SNDFILE *f = sf_open(file, SFM_READ, &info);
+	if (f == NULL) {
+		fprintf(stderr, "failed to open wav file\n");
+		return;
+	}
+	if (info.channels != 1) {
+		fprintf(stderr, "invalid channel count\n");
+		sf_close(f);
+		return;
+	}
+	double *x = new double[info.frames];
+	sf_count_t n = sf_readf_double(f, x, info.frames);
+	sf_close(f);
+	if (n != info.frames) {
+		fprintf(stderr, "failed to read wav file\n");
+		delete[] x;
+		return;
+	}
+
+	int fs = info.samplerate;
+	int x_length = info.frames;
 	DioOption option;
 	InitializeDioOption(&option);
 	int f0_length = GetSamplesForDIO(fs, x_length, option.frame_period);
@@ -100,39 +120,41 @@ void exampleDio() {
 	Dio(x, x_length, fs, &option, temporalPositions, f0);
 
 	for (int i=0; i<f0_length; i++) {
-		printf("%05.3f: %05.1f\n", temporalPositions[i], f0[i]);
+		printf("%05.3f: %07.3f\n", temporalPositions[i], f0[i]);
 	}
 
+	delete[] x;
 	delete[] f0;
 	delete[] temporalPositions;
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 2) {
-		printf("Usage: make-testdata <function name>\n");
+	if (argc < 3) {
+		printf("Usage: make-testdata <function name> <wav file>\n");
 		return 1;
 	}
-	const char *name = argv[1];
-	if (strcmp(name, "interp1") == 0) {
+	const char *fn = argv[1];
+	const char *wav = argv[2];
+	if (strcmp(fn, "interp1") == 0) {
 		exampleInterp1();
 		return 0;
 	}
-	if (strcmp(name, "interp1Q") == 0) {
+	if (strcmp(fn, "interp1Q") == 0) {
 		exampleInterp1Q();
 		return 0;
 	}
-	if (strcmp(name, "DCCorrection") == 0) {
+	if (strcmp(fn, "DCCorrection") == 0) {
 		exampleDCCorrection();
 		return 0;
 	}
-	if (strcmp(name, "FFT") == 0) {
+	if (strcmp(fn, "FFT") == 0) {
 		exampleFFT();
 		return 0;
 	}
-	if (strcmp(name, "Dio") == 0) {
-		exampleDio();
+	if (strcmp(fn, "Dio") == 0) {
+		exampleDio(wav);
 		return 0;
 	}
-	printf("function name \"%s\" is undefined\n", name);
+	printf("function name \"%s\" is undefined\n", fn);
 	return 1;
 }
