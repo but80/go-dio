@@ -36,13 +36,7 @@ func designLowCutFilter(n, fftSize int, lowCutFilter []float64) {
 // and calculates the spectrum of the downsampled signal.
 func (s *Session) getSpectrumForEstimation() {
 	y := make([]float64, s.fftSize)
-
-	// Downsampling
-	if s.decimationRatio != 1 {
-		matlab.Decimate(s.x, s.decimationRatio, y)
-	} else {
-		copy(y[:len(s.x)], s.x)
-	}
+	copy(y[:len(s.x)], s.x)
 
 	// Removal of the DC component (y = y - mean value of y)
 	meanY := 0.0
@@ -60,7 +54,7 @@ func (s *Session) getSpectrumForEstimation() {
 	s.fft.Coefficients(s.ySpectrum[:s.fftSize/2+1], y)
 
 	// Low cut filtering (from 0.1.4). Cut off frequency is 50.0 Hz.
-	cutoffInSample := matlab.Round(s.actualFS / constant.CutOff)
+	cutoffInSample := matlab.Round(s.fs / constant.CutOff)
 	designLowCutFilter(cutoffInSample*2+1, s.fftSize, y)
 
 	filterSpectrum := make([]complex128, s.fftSize/2+1)

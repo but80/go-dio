@@ -46,18 +46,16 @@ func NewOption() *Option {
 type Session struct {
 	// Inputs
 	x      []float64 // Input signal
-	fs     int       // Sampling frequency
+	fs     float64   // Sampling frequency
 	option *Option   // Struct to order the parameter for DIO
 
 	// Immutable temporaries
 	f0Length          int
 	yLength           int
-	decimationRatio   int // for downsampling (default=1)
-	actualFS          float64
 	fftSize           int
 	fft               *fourier.FFT
-	numberOfBands     int
-	voiceRangeMinimum int // [frames]
+	numberOfBands     int // Max number of candidates
+	voiceRangeMinimum int // Number of consecutive frames for stable estimation
 
 	// Mutable temporaries
 	ySpectrum      []complex128
@@ -74,9 +72,9 @@ type Session struct {
 }
 
 // NewSession creates new Session.
-func NewSession(x []float64, fs int, option *Option) *Session {
+func NewSession(x []float64, fs float64, option *Option) *Session {
 	numberOfBands := 1 + int(math.Log2(option.F0Ceil/option.F0Floor)*option.ChannelsInOctave)
-	f0Length := int(1000.0*float64(len(x))/float64(fs)/option.FramePeriod) + 1
+	f0Length := int(1000.0*float64(len(x))/fs/option.FramePeriod) + 1
 	temporalPositions := make([]float64, f0Length)
 	f0 := make([]float64, f0Length)
 
@@ -103,12 +101,10 @@ func NewSession(x []float64, fs int, option *Option) *Session {
 	}
 
 	// normalization
-	s.decimationRatio = common.MaxInt(common.MinInt(option.Speed, 12), 1)
-	s.yLength = 1 + len(s.x)/s.decimationRatio
-	s.actualFS = float64(s.fs) / float64(s.decimationRatio)
+	s.yLength = 1 + len(s.x)
 	s.fftSize = common.GetSuitableFFTSize(s.yLength +
-		matlab.Round(s.actualFS/constant.CutOff)*2 + 1 +
-		4*int(1.0+s.actualFS/s.boundaryF0List[0]/2.0))
+		matlab.Round(s.fs/constant.CutOff)*2 + 1 +
+		4*int(1.0+s.fs/s.boundaryF0List[0]/2.0))
 	s.fft = fourier.NewFFT(s.fftSize)
 
 	s.ySpectrum = make([]complex128, s.fftSize)
@@ -140,7 +136,7 @@ func (s *Session) Estimate() ([]float64, []float64) {
 	s.getBestF0Contour(bestF0Contour)
 
 	// Postprocessing to find the best f0-contour.
-	s.fixF0Contour(bestF0Contour)
+	s.fixF0Contour(bestF0Contour, s.f0)
 
 	return s.temporalPositions, s.f0
 }

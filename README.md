@@ -9,3 +9,5 @@
 **go-dio** is a pure Go implementation of **DIO** the fundamental frequency estimation method.
 
 DIO is one feature of [World](https://github.com/mmorise/World) the speech analysis, manipulation and synthesis system.
+
+This version omits the downsampling function. If you want high speed, downsample the input in advance.

@@ -52,28 +52,28 @@ func (s *Session) getFilteredSignal(halfAverageLength int, filteredSignal []floa
 func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64) {
 	// xLength / 4 (old version) is fixed at 2013/07/14
 	s.zeroCrossings.numberOfNegatives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.actualFS, s.zeroCrossings.negativeIntervalLocations,
+		s.yLength, s.fs, s.zeroCrossings.negativeIntervalLocations,
 		s.zeroCrossings.negativeIntervals)
 
 	for i := 0; i < s.yLength; i++ {
 		filteredSignal[i] = -filteredSignal[i]
 	}
 	s.zeroCrossings.numberOfPositives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.actualFS, s.zeroCrossings.positiveIntervalLocations,
+		s.yLength, s.fs, s.zeroCrossings.positiveIntervalLocations,
 		s.zeroCrossings.positiveIntervals)
 
 	for i := 0; i < s.yLength-1; i++ {
 		filteredSignal[i] = filteredSignal[i] - filteredSignal[i+1]
 	}
 	s.zeroCrossings.numberOfPeaks = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.actualFS, s.zeroCrossings.peakIntervalLocations,
+		s.yLength-1, s.fs, s.zeroCrossings.peakIntervalLocations,
 		s.zeroCrossings.peakIntervals)
 
 	for i := 0; i < s.yLength-1; i++ {
 		filteredSignal[i] = -filteredSignal[i]
 	}
 	s.zeroCrossings.numberOfDips = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.actualFS, s.zeroCrossings.dipIntervalLocations,
+		s.yLength-1, s.fs, s.zeroCrossings.dipIntervalLocations,
 		s.zeroCrossings.dipIntervals)
 }
 
@@ -136,7 +136,7 @@ func (s *Session) getF0CandidateContour(boundaryF0 float64) {
 // getF0CandidateFromRawEvent() calculates F0 candidate contour in 1-ch signal
 func (s *Session) getF0CandidateFromRawEvent(boundaryF0 float64) {
 	filteredSignal := make([]float64, s.fftSize)
-	s.getFilteredSignal(matlab.Round(s.actualFS/boundaryF0/2.0), filteredSignal)
+	s.getFilteredSignal(matlab.Round(s.fs/boundaryF0/2.0), filteredSignal)
 	s.getFourZeroCrossingIntervals(filteredSignal)
 	s.getF0CandidateContour(boundaryF0)
 }

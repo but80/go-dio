@@ -29,7 +29,7 @@ func (r *xorShift64Star) nextFloat64() float64 {
 }
 
 const (
-	noiseDb = -6
+	noiseDb = -18
 )
 
 func TestDio(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDio(t *testing.T) {
 	}
 
 	option := NewOption()
-	s := NewSession(x, fs, option)
+	s := NewSession(x, float64(fs), option)
 	temporalPositions, f0 := s.Estimate()
 
 	got := ""
