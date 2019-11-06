@@ -6,7 +6,7 @@
 
 **WORK IN PROGRESS**
 
-**go-dio** is a pure Go implementation of **DIO** the fundamental frequency estimation method.
+**go-dio** is an unofficial pure Go implementation of **DIO** the fundamental frequency estimation method.
 
 DIO is one feature of [World](https://github.com/mmorise/World) the speech analysis, manipulation and synthesis system.
 
