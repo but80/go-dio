@@ -1,13 +1,5 @@
 package dio
 
-// Round calculates rounding.
-func Round(x float64) int {
-	if 0 < x {
-		return int(x + .5)
-	}
-	return int(x - .5)
-}
-
 // histc counts the number of values in vector x that fall between the
 // elements in the edges vector (which must contain monotonically
 // nondecreasing values). n is a length(edges) vector containing these counts.
