@@ -1,7 +1,6 @@
 package dio
 
 import (
-	"log"
 	"math"
 
 	"github.com/but80/go-dio/constant"
@@ -33,7 +32,6 @@ func (s *Session) fixStep1(f0In, f0Out []float64) {
 		f0Base[minRange:s.f0Length-minRange],
 		f0In[minRange:s.f0Length-minRange],
 	)
-	log.Printf("fixStep1: minRange=%v", minRange)
 
 	// Processing to prevent the jumping of f0
 	for i := 0; i < minRange; i++ {
@@ -45,7 +43,7 @@ func (s *Session) fixStep1(f0In, f0Out []float64) {
 		if math.Abs(p/q) < s.option.AllowedRange {
 			f0Out[i] = f0Base[i]
 		} else {
-			log.Printf("fixStep1: unnatural change detected %v", math.Abs(p/q))
+			// log.Printf("fixStep1: unnatural change %d: %.2f", i, math.Abs(p/q))
 			f0Out[i] = 0.0
 		}
 	}

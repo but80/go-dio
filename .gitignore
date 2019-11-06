@@ -1,6 +1,6 @@
 *.dat
 *.wav
-/tools/.original
+/tools/world-cpp
 /tools/make-testdata
 
 
