@@ -4,7 +4,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/but80/go-world/constant"
+	"github.com/but80/go-dio/constant"
 )
 
 // getBestF0Contour calculates the best f0 contour based on scores of

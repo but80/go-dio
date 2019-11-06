@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/but80/go-world/internal/testasset"
+	"github.com/but80/go-dio/internal/testasset"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,15 +34,15 @@ const (
 
 func TestDio(t *testing.T) {
 	cmd := exec.Command(
-		"../tools/make-testdata",
+		"./tools/make-testdata",
 		"Dio",
-		"../tools/testdata.wav",
+		"./tools/testdata.wav",
 		strconv.Itoa(noiseDb),
 	)
 	want, err := cmd.Output()
 	assert.NoError(t, err)
 
-	x, fs, err := testasset.Load("../tools/testdata.wav")
+	x, fs, err := testasset.Load("./tools/testdata.wav")
 	assert.NoError(t, err)
 
 	noiseAmp := math.Pow(2, noiseDb)

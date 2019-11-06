@@ -3,8 +3,8 @@ package dio
 import (
 	"math"
 
-	"github.com/but80/go-world/constant"
-	"github.com/but80/go-world/internal/matlab"
+	"github.com/but80/go-dio/constant"
+	"github.com/but80/go-dio/internal/matlab"
 )
 
 // designLowCutFilter calculates the coefficients the filter.

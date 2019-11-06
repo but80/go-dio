@@ -3,9 +3,9 @@ package dio
 import (
 	"math"
 
-	"github.com/but80/go-world/constant"
-	"github.com/but80/go-world/internal/common"
-	"github.com/but80/go-world/internal/matlab"
+	"github.com/but80/go-dio/constant"
+	"github.com/but80/go-dio/internal/common"
+	"github.com/but80/go-dio/internal/matlab"
 	"gonum.org/v1/gonum/fourier"
 )
 
