@@ -20,7 +20,7 @@ func checkEvent(x int) int {
 // getFilteredSignal calculates the signal that is the convolution of the
 // input signal and low-pass filter.
 // This function is only used in rawEventByDio()
-func (s *Session) getFilteredSignal(halfAverageLength int, filteredSignal []float64) {
+func (s *Estimator) getFilteredSignal(halfAverageLength int, filteredSignal []float64) {
 	lpf := make([]float64, s.fftSize)
 	// Nuttall window is used as a low-pass filter.
 	// Cutoff frequency depends on the window length.
@@ -49,7 +49,7 @@ func (s *Session) getFilteredSignal(halfAverageLength int, filteredSignal []floa
 // (2) Zero-crossing going from positive to negative.
 // (3) Peak, and (4) dip. (3) and (4) are calculated from the zero-crossings of
 // the differential of waveform.
-func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64) {
+func (s *Estimator) getFourZeroCrossingIntervals(filteredSignal []float64) {
 	// xLength / 4 (old version) is fixed at 2013/07/14
 	zeroCrossingEngine(filteredSignal[:s.yLength], s.fs, &s.zeroCrossings.negatives)
 
@@ -71,7 +71,7 @@ func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64) {
 
 // getF0CandidateContourSub calculates the f0 candidates and deviations.
 // This is the sub-function of getF0Candidates() and assumes the calculation.
-func (s *Session) getF0CandidateContourSub(interpolatedF0Set [4][]float64, boundaryF0 float64) {
+func (s *Estimator) getF0CandidateContourSub(interpolatedF0Set [4][]float64, boundaryF0 float64) {
 	for i := 0; i < s.f0Length; i++ {
 		c := &s.f0Candidate[i]
 
@@ -98,7 +98,7 @@ func (s *Session) getF0CandidateContourSub(interpolatedF0Set [4][]float64, bound
 
 // getF0CandidateContour() calculates the F0 candidates based on the
 // zero-crossings.
-func (s *Session) getF0CandidateContour(boundaryF0 float64) {
+func (s *Estimator) getF0CandidateContour(boundaryF0 float64) {
 	if 0 == checkEvent(len(s.zeroCrossings.negatives)-2)*
 		checkEvent(len(s.zeroCrossings.positives)-2)*
 		checkEvent(len(s.zeroCrossings.peaks)-2)*
@@ -126,7 +126,7 @@ func (s *Session) getF0CandidateContour(boundaryF0 float64) {
 }
 
 // getF0CandidateFromRawEvent() calculates F0 candidate contour in 1-ch signal
-func (s *Session) getF0CandidateFromRawEvent(boundaryF0 float64) {
+func (s *Estimator) getF0CandidateFromRawEvent(boundaryF0 float64) {
 	filteredSignal := make([]float64, s.fftSize)
 	s.getFilteredSignal(matlab.Round(s.fs/boundaryF0/2.0), filteredSignal)
 	s.getFourZeroCrossingIntervals(filteredSignal)
@@ -134,7 +134,7 @@ func (s *Session) getF0CandidateFromRawEvent(boundaryF0 float64) {
 }
 
 // getF0CandidatesAndScores calculates all f0 candidates and their scores.
-func (s *Session) getF0CandidatesAndScores() {
+func (s *Estimator) getF0CandidatesAndScores() {
 	// Calculation of the acoustics events (zero-crossing)
 	for i := 0; i < s.numberOfBands; i++ {
 		s.getF0CandidateFromRawEvent(s.boundaryF0List[i])

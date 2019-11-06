@@ -34,7 +34,7 @@ func designLowCutFilter(n, fftSize int, lowCutFilter []float64) {
 // getSpectrumForEstimation calculates the spectrum for estimation.
 // This function carries out downsampling to speed up the estimation process
 // and calculates the spectrum of the downsampled signal.
-func (s *Session) getSpectrumForEstimation() {
+func (s *Estimator) getSpectrumForEstimation() {
 	y := make([]float64, s.fftSize)
 	copy(y[:len(s.x)], s.x)
 

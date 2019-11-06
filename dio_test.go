@@ -67,8 +67,7 @@ func TestDio(t *testing.T) {
 			x[i] += (v - .5) * 2 * noiseAmp
 		}
 
-		option := NewOption()
-		s := NewSession(x, float64(fs), option)
+		s := New(x, float64(fs), nil)
 		temporalPositions, f0 := s.Estimate()
 
 		got := ""

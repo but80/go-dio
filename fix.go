@@ -8,7 +8,7 @@ import (
 
 // getBestF0Contour calculates the best f0 contour based on scores of
 // all candidates. The F0 with highest score is selected.
-func (s *Session) getBestF0Contour(bestF0Contour []float64) {
+func (s *Estimator) getBestF0Contour(bestF0Contour []float64) {
 	for i := 0; i < s.f0Length; i++ {
 		c := s.f0Candidates[0][i]
 		tmp := c.score
@@ -25,7 +25,7 @@ func (s *Session) getBestF0Contour(bestF0Contour []float64) {
 
 // fixStep1 is the 1st step of the postprocessing.
 // This function eliminates the unnatural change of f0 based on allowedRange.
-func (s *Session) fixStep1(f0In, f0Out []float64) {
+func (s *Estimator) fixStep1(f0In, f0Out []float64) {
 	minRange := s.voiceRangeMinimum
 	f0Base := make([]float64, s.f0Length)
 	copy(
@@ -51,7 +51,7 @@ func (s *Session) fixStep1(f0In, f0Out []float64) {
 
 // fixStep2 is the 2nd step of the postprocessing.
 // This function eliminates the suspected f0 in the anlaut and auslaut.
-func (s *Session) fixStep2(f0In, f0Out []float64) {
+func (s *Estimator) fixStep2(f0In, f0Out []float64) {
 	copy(f0Out, f0In)
 
 	center := (s.voiceRangeMinimum - 1) / 2
@@ -66,7 +66,7 @@ func (s *Session) fixStep2(f0In, f0Out []float64) {
 }
 
 // getNumberOfVoicedSections counts the number of voiced sections.
-func (s *Session) getNumberOfVoicedSections(f0 []float64, positiveIndex, negativeIndex []int) (int, int) {
+func (s *Estimator) getNumberOfVoicedSections(f0 []float64, positiveIndex, negativeIndex []int) (int, int) {
 	positiveCount := 0
 	negativeCount := 0
 	for i := 1; i < s.f0Length; i++ {
@@ -84,7 +84,7 @@ func (s *Session) getNumberOfVoicedSections(f0 []float64, positiveIndex, negativ
 }
 
 // selectBestF0 corrects the f0[currentIndex] based on f0[currentIndex + sign].
-func (s *Session) selectBestF0(currentF0, pastF0 float64, targetIndex int) float64 {
+func (s *Estimator) selectBestF0(currentF0, pastF0 float64, targetIndex int) float64 {
 	referenceF0 := (currentF0*3.0 - pastF0) / 2.0
 
 	c := s.f0Candidates[0][targetIndex]
@@ -108,7 +108,7 @@ func (s *Session) selectBestF0(currentF0, pastF0 float64, targetIndex int) float
 
 // fixStep3 is the 3rd step of the postprocessing.
 // This function corrects the f0 candidates from backward to forward.
-func (s *Session) fixStep3(f0In, f0Out []float64, negativeIndex []int, negativeCount int) {
+func (s *Estimator) fixStep3(f0In, f0Out []float64, negativeIndex []int, negativeCount int) {
 	copy(f0Out, f0In)
 
 	for i := 0; i < negativeCount; i++ {
@@ -129,7 +129,7 @@ func (s *Session) fixStep3(f0In, f0Out []float64, negativeIndex []int, negativeC
 
 // fixStep4 is the 4th step of the postprocessing.
 // This function corrects the f0 candidates from forward to backward.
-func (s *Session) fixStep4(f0In, f0Out []float64, positiveIndex []int, positiveCount int) {
+func (s *Estimator) fixStep4(f0In, f0Out []float64, positiveIndex []int, positiveCount int) {
 	copy(f0Out, f0In)
 
 	for i := positiveCount - 1; i >= 0; i-- {
@@ -148,7 +148,7 @@ func (s *Session) fixStep4(f0In, f0Out []float64, positiveIndex []int, positiveC
 
 // fixF0Contour() calculates the definitive f0 contour based on all f0
 // candidates. There are four steps.
-func (s *Session) fixF0Contour(f0In, f0Out []float64) {
+func (s *Estimator) fixF0Contour(f0In, f0Out []float64) {
 	if s.f0Length <= s.voiceRangeMinimum {
 		return
 	}

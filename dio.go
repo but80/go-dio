@@ -47,8 +47,8 @@ type candidate struct {
 	score float64
 }
 
-// Session is the struct holds the variables needed to estimate f0 by Dio.
-type Session struct {
+// Estimator is the struct holds the variables needed to estimate f0 by Dio.
+type Estimator struct {
 	// Inputs
 	x      []float64 // Input signal
 	fs     float64   // Sampling frequency
@@ -74,8 +74,11 @@ type Session struct {
 	f0                []float64 // F0 contour.
 }
 
-// NewSession creates new Session.
-func NewSession(x []float64, fs float64, option *Option) *Session {
+// New creates new Estimator.
+func New(x []float64, fs float64, option *Option) *Estimator {
+	if option == nil {
+		option = NewOption()
+	}
 	numberOfBands := 1 + int(math.Log2(option.F0Ceil/option.F0Floor)*option.ChannelsInOctave)
 	f0Length := int(1000.0*float64(len(x))/fs/option.FramePeriod) + 1
 	temporalPositions := make([]float64, f0Length)
@@ -86,7 +89,7 @@ func NewSession(x []float64, fs float64, option *Option) *Session {
 		boundaryF0List[i] = option.F0Floor * math.Pow(2.0, float64(i+1)/option.ChannelsInOctave)
 	}
 
-	s := &Session{
+	s := &Estimator{
 		x:      x,
 		fs:     fs,
 		option: option,
@@ -124,7 +127,7 @@ func NewSession(x []float64, fs float64, option *Option) *Session {
 }
 
 // Estimate estimates the F0 based on Distributed Inline-filter Operation.
-func (s *Session) Estimate() ([]float64, []float64) {
+func (s *Estimator) Estimate() ([]float64, []float64) {
 	// Calculation of the spectrum used for the f0 estimation
 	s.getSpectrumForEstimation()
 
