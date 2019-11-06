@@ -47,27 +47,54 @@ type candidate struct {
 	score float64
 }
 
-// Estimator is the struct holds the variables needed to estimate f0 by Dio.
-type Estimator struct {
-	// Inputs
-	x      []float64 // Input signal
-	fs     float64   // Sampling frequency
-	option *Option   // Struct to order the parameter for DIO
+type params struct {
+	fs     float64 // Sampling frequency
+	option *Option // Struct to order the parameter for DIO
 
-	// Immutable temporaries
 	f0Length          int
 	yLength           int
-	fftSize           int
-	fft               *fourier.FFT
 	numberOfBands     int // Max number of candidates
 	voiceRangeMinimum int // Number of consecutive frames for stable estimation
+	fftSize           int
+	fft               *fourier.FFT
+	boundaryF0List    []float64
+}
 
-	// Mutable temporaries
-	ySpectrum      []complex128
-	boundaryF0List []float64
-	zeroCrossings  *zeroCrossings
-	f0Candidates   [][]candidate
-	f0Candidate    []candidate
+func newParams(xLen int, fs float64, option *Option) *params {
+	p := &params{
+		fs:     fs,
+		option: option,
+
+		f0Length:          int(1000.0*float64(xLen)/fs/option.FramePeriod) + 1,
+		yLength:           1 + xLen,
+		numberOfBands:     1 + int(math.Log2(option.F0Ceil/option.F0Floor)*option.ChannelsInOctave),
+		voiceRangeMinimum: int(0.5+1000.0/option.FramePeriod/option.F0Floor)*2 + 1,
+	}
+
+	p.boundaryF0List = make([]float64, p.numberOfBands)
+	for i := 0; i < p.numberOfBands; i++ {
+		p.boundaryF0List[i] = option.F0Floor * math.Pow(2.0, float64(i+1)/option.ChannelsInOctave)
+	}
+
+	p.fftSize = common.GetSuitableFFTSize(p.yLength +
+		matlab.Round(fs/constant.CutOff)*2 + 1 +
+		4*int(1.0+fs/p.boundaryF0List[0]/2.0))
+	p.fft = fourier.NewFFT(p.fftSize)
+	return p
+}
+
+// Estimator is the struct holds the variables needed to estimate f0 by Dio.
+type Estimator struct {
+	*params
+
+	// Inputs
+	x []float64 // Input signal
+
+	// Temporaries
+	ySpectrum     []complex128
+	zeroCrossings *zeroCrossings
+	f0Candidates  [][]candidate
+	f0Candidate   []candidate
 
 	// Outputs
 	temporalPositions []float64 // Temporal positions.
@@ -79,48 +106,27 @@ func New(x []float64, fs float64, option *Option) *Estimator {
 	if option == nil {
 		option = NewOption()
 	}
-	numberOfBands := 1 + int(math.Log2(option.F0Ceil/option.F0Floor)*option.ChannelsInOctave)
-	f0Length := int(1000.0*float64(len(x))/fs/option.FramePeriod) + 1
-	temporalPositions := make([]float64, f0Length)
-	f0 := make([]float64, f0Length)
+	p := newParams(len(x), fs, option)
 
-	boundaryF0List := make([]float64, numberOfBands)
-	for i := 0; i < numberOfBands; i++ {
-		boundaryF0List[i] = option.F0Floor * math.Pow(2.0, float64(i+1)/option.ChannelsInOctave)
+	temporalPositions := make([]float64, p.f0Length)
+	for i := range temporalPositions {
+		temporalPositions[i] = float64(i) * option.FramePeriod / 1000.0
 	}
 
 	s := &Estimator{
-		x:      x,
-		fs:     fs,
-		option: option,
-
-		f0Length:          f0Length,
-		numberOfBands:     numberOfBands,
-		voiceRangeMinimum: int(0.5+1000.0/option.FramePeriod/option.F0Floor)*2 + 1,
-
-		boundaryF0List: boundaryF0List,
-		f0Candidate:    make([]candidate, f0Length),
+		x:           x,
+		params:      p,
+		f0Candidate: make([]candidate, p.f0Length),
 
 		temporalPositions: temporalPositions,
-		f0:                f0,
+		f0:                make([]float64, p.f0Length),
 	}
-
-	// normalization
-	s.yLength = 1 + len(s.x)
-	s.fftSize = common.GetSuitableFFTSize(s.yLength +
-		matlab.Round(s.fs/constant.CutOff)*2 + 1 +
-		4*int(1.0+s.fs/s.boundaryF0List[0]/2.0))
-	s.fft = fourier.NewFFT(s.fftSize)
 
 	s.ySpectrum = make([]complex128, s.fftSize)
 	s.zeroCrossings = newZeroCrossings(s.yLength)
 	s.f0Candidates = make([][]candidate, s.numberOfBands)
 	for i := 0; i < s.numberOfBands; i++ {
 		s.f0Candidates[i] = make([]candidate, s.f0Length)
-	}
-
-	for i := range s.temporalPositions {
-		s.temporalPositions[i] = float64(i) * s.option.FramePeriod / 1000.0
 	}
 
 	return s
