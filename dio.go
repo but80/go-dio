@@ -42,6 +42,11 @@ func NewOption() *Option {
 	return option
 }
 
+type candidate struct {
+	f0    float64
+	score float64
+}
+
 // Session is the struct holds the variables needed to estimate f0 by Dio.
 type Session struct {
 	// Inputs
@@ -61,10 +66,8 @@ type Session struct {
 	ySpectrum      []complex128
 	boundaryF0List []float64
 	zeroCrossings  *zeroCrossings
-	f0Candidates   [][]float64
-	f0Scores       [][]float64
-	f0Candidate    []float64
-	f0Score        []float64
+	f0Candidates   [][]candidate
+	f0Candidate    []candidate
 
 	// Outputs
 	temporalPositions []float64 // Temporal positions.
@@ -93,8 +96,7 @@ func NewSession(x []float64, fs float64, option *Option) *Session {
 		voiceRangeMinimum: int(0.5+1000.0/option.FramePeriod/option.F0Floor)*2 + 1,
 
 		boundaryF0List: boundaryF0List,
-		f0Candidate:    make([]float64, f0Length),
-		f0Score:        make([]float64, f0Length),
+		f0Candidate:    make([]candidate, f0Length),
 
 		temporalPositions: temporalPositions,
 		f0:                f0,
@@ -109,11 +111,9 @@ func NewSession(x []float64, fs float64, option *Option) *Session {
 
 	s.ySpectrum = make([]complex128, s.fftSize)
 	s.zeroCrossings = newZeroCrossings(s.yLength)
-	s.f0Candidates = make([][]float64, s.numberOfBands)
-	s.f0Scores = make([][]float64, s.numberOfBands)
+	s.f0Candidates = make([][]candidate, s.numberOfBands)
 	for i := 0; i < s.numberOfBands; i++ {
-		s.f0Candidates[i] = make([]float64, s.f0Length)
-		s.f0Scores[i] = make([]float64, s.f0Length)
+		s.f0Candidates[i] = make([]candidate, s.f0Length)
 	}
 
 	for i := range s.temporalPositions {

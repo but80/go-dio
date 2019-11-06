@@ -51,63 +51,63 @@ func (s *Session) getFilteredSignal(halfAverageLength int, filteredSignal []floa
 // the differential of waveform.
 func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64) {
 	// xLength / 4 (old version) is fixed at 2013/07/14
-	s.zeroCrossings.numberOfNegatives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.fs, s.zeroCrossings.negativeIntervalLocations,
-		s.zeroCrossings.negativeIntervals)
+	zeroCrossingEngine(filteredSignal, s.fs, &s.zeroCrossings.negatives)
 
-	for i := 0; i < s.yLength; i++ {
-		filteredSignal[i] = -filteredSignal[i]
+	for i, v := range filteredSignal {
+		filteredSignal[i] = -v
 	}
-	s.zeroCrossings.numberOfPositives = zeroCrossingEngine(filteredSignal,
-		s.yLength, s.fs, s.zeroCrossings.positiveIntervalLocations,
-		s.zeroCrossings.positiveIntervals)
+	zeroCrossingEngine(filteredSignal, s.fs, &s.zeroCrossings.positives)
 
 	for i := 0; i < s.yLength-1; i++ {
-		filteredSignal[i] = filteredSignal[i] - filteredSignal[i+1]
+		filteredSignal[i] -= filteredSignal[i+1]
 	}
-	s.zeroCrossings.numberOfPeaks = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.fs, s.zeroCrossings.peakIntervalLocations,
-		s.zeroCrossings.peakIntervals)
+	zeroCrossingEngine(filteredSignal[:s.yLength-1], s.fs, &s.zeroCrossings.peaks)
 
-	for i := 0; i < s.yLength-1; i++ {
-		filteredSignal[i] = -filteredSignal[i]
+	for i, v := range filteredSignal {
+		filteredSignal[i] = -v
 	}
-	s.zeroCrossings.numberOfDips = zeroCrossingEngine(filteredSignal,
-		s.yLength-1, s.fs, s.zeroCrossings.dipIntervalLocations,
-		s.zeroCrossings.dipIntervals)
+	zeroCrossingEngine(filteredSignal[:s.yLength-1], s.fs, &s.zeroCrossings.dips)
 }
 
 // getF0CandidateContourSub calculates the f0 candidates and deviations.
 // This is the sub-function of getF0Candidates() and assumes the calculation.
 func (s *Session) getF0CandidateContourSub(interpolatedF0Set [4][]float64, boundaryF0 float64) {
 	for i := 0; i < s.f0Length; i++ {
-		s.f0Candidate[i] = (interpolatedF0Set[0][i] +
-			interpolatedF0Set[1][i] + interpolatedF0Set[2][i] +
-			interpolatedF0Set[3][i]) / 4.0
+		c := &s.f0Candidate[i]
 
-		s.f0Score[i] = math.Sqrt(((interpolatedF0Set[0][i]-s.f0Candidate[i])*(interpolatedF0Set[0][i]-s.f0Candidate[i]) +
-			(interpolatedF0Set[1][i]-s.f0Candidate[i])*(interpolatedF0Set[1][i]-s.f0Candidate[i]) +
-			(interpolatedF0Set[2][i]-s.f0Candidate[i])*(interpolatedF0Set[2][i]-s.f0Candidate[i]) +
-			(interpolatedF0Set[3][i]-s.f0Candidate[i])*(interpolatedF0Set[3][i]-s.f0Candidate[i])) / 3.0)
+		c0 := interpolatedF0Set[0][i]
+		c1 := interpolatedF0Set[1][i]
+		c2 := interpolatedF0Set[2][i]
+		c3 := interpolatedF0Set[3][i]
+		c.f0 = (c0 + c1 + c2 + c3) / 4.0
 
-		if s.f0Candidate[i] > boundaryF0 || s.f0Candidate[i] < boundaryF0/2.0 ||
-			s.f0Candidate[i] > s.option.F0Ceil || s.f0Candidate[i] < s.option.F0Floor {
-			s.f0Candidate[i] = 0.0
-			s.f0Score[i] = constant.MaximumValue
+		if c.f0 < boundaryF0/2.0 || boundaryF0 < c.f0 ||
+			c.f0 < s.option.F0Floor || s.option.F0Ceil < c.f0 {
+			c.f0 = 0.0
+			c.score = constant.MaximumValue
+			continue
 		}
+
+		d0 := c0 - c.f0
+		d1 := c1 - c.f0
+		d2 := c2 - c.f0
+		d3 := c3 - c.f0
+		c.score = math.Sqrt((d0*d0 + d1*d1 + d2*d2 + d3*d3) / 3.0)
 	}
 }
 
 // getF0CandidateContour() calculates the F0 candidates based on the
 // zero-crossings.
 func (s *Session) getF0CandidateContour(boundaryF0 float64) {
-	if 0 == checkEvent(s.zeroCrossings.numberOfNegatives-2)*
-		checkEvent(s.zeroCrossings.numberOfPositives-2)*
-		checkEvent(s.zeroCrossings.numberOfPeaks-2)*
-		checkEvent(s.zeroCrossings.numberOfDips-2) {
+	if 0 == checkEvent(len(s.zeroCrossings.negatives)-2)*
+		checkEvent(len(s.zeroCrossings.positives)-2)*
+		checkEvent(len(s.zeroCrossings.peaks)-2)*
+		checkEvent(len(s.zeroCrossings.dips)-2) {
 		for i := 0; i < s.f0Length; i++ {
-			s.f0Score[i] = constant.MaximumValue
-			s.f0Candidate[i] = 0.0
+			s.f0Candidate[i] = candidate{
+				f0:    0.0,
+				score: constant.MaximumValue,
+			}
 		}
 		return
 	}
@@ -117,18 +117,10 @@ func (s *Session) getF0CandidateContour(boundaryF0 float64) {
 		interpolatedF0Set[i] = make([]float64, s.f0Length)
 	}
 
-	matlab.Interp1(s.zeroCrossings.negativeIntervalLocations[:s.zeroCrossings.numberOfNegatives],
-		s.zeroCrossings.negativeIntervals,
-		s.temporalPositions, interpolatedF0Set[0])
-	matlab.Interp1(s.zeroCrossings.positiveIntervalLocations[:s.zeroCrossings.numberOfPositives],
-		s.zeroCrossings.positiveIntervals,
-		s.temporalPositions, interpolatedF0Set[1])
-	matlab.Interp1(s.zeroCrossings.peakIntervalLocations[:s.zeroCrossings.numberOfPeaks],
-		s.zeroCrossings.peakIntervals,
-		s.temporalPositions, interpolatedF0Set[2])
-	matlab.Interp1(s.zeroCrossings.dipIntervalLocations[:s.zeroCrossings.numberOfDips],
-		s.zeroCrossings.dipIntervals,
-		s.temporalPositions, interpolatedF0Set[3])
+	interp1(s.zeroCrossings.negatives, s.temporalPositions, interpolatedF0Set[0])
+	interp1(s.zeroCrossings.positives, s.temporalPositions, interpolatedF0Set[1])
+	interp1(s.zeroCrossings.peaks, s.temporalPositions, interpolatedF0Set[2])
+	interp1(s.zeroCrossings.dips, s.temporalPositions, interpolatedF0Set[3])
 
 	s.getF0CandidateContourSub(interpolatedF0Set, boundaryF0)
 }
@@ -147,9 +139,11 @@ func (s *Session) getF0CandidatesAndScores() {
 	for i := 0; i < s.numberOfBands; i++ {
 		s.getF0CandidateFromRawEvent(s.boundaryF0List[i])
 		for j := 0; j < s.f0Length; j++ {
-			// A way to avoid zero division
-			s.f0Scores[i][j] = s.f0Score[j] / (s.f0Candidate[j] + constant.MySafeGuardMinimum)
-			s.f0Candidates[i][j] = s.f0Candidate[j]
+			c := s.f0Candidate[j]
+			s.f0Candidates[i][j] = candidate{
+				f0:    c.f0,
+				score: c.score / (c.f0 + constant.MySafeGuardMinimum),
+			}
 		}
 	}
 }

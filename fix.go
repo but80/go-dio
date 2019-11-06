@@ -11,12 +11,14 @@ import (
 // all candidates. The F0 with highest score is selected.
 func (s *Session) getBestF0Contour(bestF0Contour []float64) {
 	for i := 0; i < s.f0Length; i++ {
-		tmp := s.f0Scores[0][i]
-		bestF0Contour[i] = s.f0Candidates[0][i]
+		c := s.f0Candidates[0][i]
+		tmp := c.score
+		bestF0Contour[i] = c.f0
 		for j := 1; j < s.numberOfBands; j++ {
-			if tmp > s.f0Scores[j][i] {
-				tmp = s.f0Scores[j][i]
-				bestF0Contour[i] = s.f0Candidates[j][i]
+			c := s.f0Candidates[j][i]
+			if c.score < tmp {
+				tmp = c.score
+				bestF0Contour[i] = c.f0
 			}
 		}
 	}
@@ -87,15 +89,17 @@ func (s *Session) getNumberOfVoicedSections(f0 []float64, positiveIndex, negativ
 func (s *Session) selectBestF0(currentF0, pastF0 float64, targetIndex int) float64 {
 	referenceF0 := (currentF0*3.0 - pastF0) / 2.0
 
-	minimumError := math.Abs(referenceF0 - s.f0Candidates[0][targetIndex])
-	bestF0 := s.f0Candidates[0][targetIndex]
+	c := s.f0Candidates[0][targetIndex]
+	minimumError := math.Abs(referenceF0 - c.f0)
+	bestF0 := c.f0
 
 	var currentError float64
 	for i := 1; i < s.numberOfBands; i++ {
-		currentError = math.Abs(referenceF0 - s.f0Candidates[i][targetIndex])
+		c := s.f0Candidates[i][targetIndex]
+		currentError = math.Abs(referenceF0 - c.f0)
 		if currentError < minimumError {
 			minimumError = currentError
-			bestF0 = s.f0Candidates[i][targetIndex]
+			bestF0 = c.f0
 		}
 	}
 	if math.Abs(1.0-bestF0/referenceF0) > s.option.AllowedRange {
