@@ -113,7 +113,7 @@ void exampleFFT() {
 
 #define bufSize = 100
 
-void exampleDio(const char *file, int noiseDB) {
+void exampleDio(const char *file, int noiseDB, bool reverse) {
 	SF_INFO info;
 	SNDFILE *f = sf_open(file, SFM_READ, &info);
 	if (f == NULL) {
@@ -132,6 +132,15 @@ void exampleDio(const char *file, int noiseDB) {
 		fprintf(stderr, "failed to read wav file\n");
 		delete[] x;
 		return;
+	}
+
+	if (reverse) {
+		for (int i=0; i<info.frames/2; i++) {
+			int j = info.frames - 1 - i;
+			double v = x[j];
+			x[j] = x[i];
+			x[i] = v;
+		}
 	}
 
 	double noiseAmp = pow(2.0, noiseDB);
@@ -161,13 +170,14 @@ void exampleDio(const char *file, int noiseDB) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 4) {
-		printf("Usage: make-testdata <function name> <wav file> <noise [DB]>\n");
+	if (argc < 5) {
+		printf("Usage: make-testdata <function name> <wav file> <noise [DB]> <reverse>\n");
 		return 1;
 	}
 	const char *fn = argv[1];
 	const char *wav = argv[2];
 	int noiseDB = atoi(argv[3]);
+	int reverse = atoi(argv[4]) != 0;
 	if (strcmp(fn, "interp1") == 0) {
 		exampleInterp1();
 		return 0;
@@ -185,7 +195,7 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	if (strcmp(fn, "Dio") == 0) {
-		exampleDio(wav, noiseDB);
+		exampleDio(wav, noiseDB, reverse);
 		return 0;
 	}
 	printf("function name \"%s\" is undefined\n", fn);

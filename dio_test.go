@@ -37,6 +37,8 @@ const (
 )
 
 func TestDio(t *testing.T) {
+	t.Parallel()
+
 	files, err := ioutil.ReadDir(testdataDir)
 	if err != nil {
 		panic(err)
@@ -48,33 +50,47 @@ func TestDio(t *testing.T) {
 		}
 		path := filepath.Join(testdataDir, file.Name())
 
-		cmd := exec.Command(
-			"./tools/make-testdata",
-			"Dio",
-			path,
-			strconv.Itoa(noiseDB),
-		)
-		want, err := cmd.Output()
+		x0, fs, err := testasset.Load(path)
 		assert.NoError(t, err)
 
-		x, fs, err := testasset.Load(path)
-		assert.NoError(t, err)
+		s := New(x0, float64(fs), nil)
 
-		noiseAmp := math.Pow(2, noiseDB)
-		r := xorShift64Star{state: 1}
-		for i := range x {
-			v := r.nextFloat64()
-			x[i] += (v - .5) * 2 * noiseAmp
+		for reverse := 0; reverse < 2; reverse++ {
+			cmd := exec.Command(
+				"./tools/make-testdata",
+				"Dio",
+				path,
+				strconv.Itoa(noiseDB),
+				strconv.Itoa(reverse),
+			)
+			want, err := cmd.Output()
+			assert.NoError(t, err)
+
+			x := make([]float64, len(x0))
+			copy(x, x0)
+			if reverse != 0 {
+				for i := 0; i < len(x)/2; i++ {
+					j := len(x) - 1 - i
+					x[i], x[j] = x[j], x[i]
+				}
+			}
+
+			noiseAmp := math.Pow(2, noiseDB)
+			r := xorShift64Star{state: 1}
+			for i := range x {
+				v := r.nextFloat64()
+				x[i] += (v - .5) * 2 * noiseAmp
+			}
+
+			s.x = x
+			temporalPositions, f0 := s.Estimate()
+
+			got := ""
+			for i := range f0 {
+				got += fmt.Sprintf("%05.3f: %05.1f\n", temporalPositions[i], f0[i])
+			}
+
+			assert.Equal(t, string(want), got, file.Name())
 		}
-
-		s := New(x, float64(fs), nil)
-		temporalPositions, f0 := s.Estimate()
-
-		got := ""
-		for i := range f0 {
-			got += fmt.Sprintf("%05.3f: %05.1f\n", temporalPositions[i], f0[i])
-		}
-
-		assert.Equal(t, string(want), got, file.Name())
 	}
 }

@@ -48,8 +48,9 @@ type candidate struct {
 }
 
 type params struct {
-	fs     float64 // Sampling frequency
-	option *Option // Struct to order the parameter for DIO
+	fs      float64 // Sampling frequency
+	xLength int
+	option  *Option // Struct to order the parameter for DIO
 
 	f0Length          int
 	yLength           int
@@ -60,13 +61,14 @@ type params struct {
 	boundaryF0List    []float64
 }
 
-func newParams(xLen int, fs float64, option *Option) *params {
+func newParams(xLength int, fs float64, option *Option) *params {
 	p := &params{
-		fs:     fs,
-		option: option,
+		fs:      fs,
+		xLength: xLength,
+		option:  option,
 
-		f0Length:          int(1000.0*float64(xLen)/fs/option.FramePeriod) + 1,
-		yLength:           1 + xLen,
+		f0Length:          int(1000.0*float64(xLength)/fs/option.FramePeriod) + 1,
+		yLength:           1 + xLength,
 		numberOfBands:     1 + int(math.Log2(option.F0Ceil/option.F0Floor)*option.ChannelsInOctave),
 		voiceRangeMinimum: int(0.5+1000.0/option.FramePeriod/option.F0Floor)*2 + 1,
 	}
@@ -107,28 +109,27 @@ func New(x []float64, fs float64, option *Option) *Estimator {
 		option = NewOption()
 	}
 	p := newParams(len(x), fs, option)
+	s := newEstimator(p)
+	s.x = x
+	return s
+}
 
-	temporalPositions := make([]float64, p.f0Length)
-	for i := range temporalPositions {
-		temporalPositions[i] = float64(i) * option.FramePeriod / 1000.0
-	}
-
+func newEstimator(p *params) *Estimator {
 	s := &Estimator{
-		x:           x,
-		params:      p,
-		f0Candidate: make([]candidate, p.f0Length),
-
-		temporalPositions: temporalPositions,
+		params:            p,
+		ySpectrum:         make([]complex128, p.fftSize),
+		zeroCrossings:     newZeroCrossings(p.yLength),
+		f0Candidates:      make([][]candidate, p.numberOfBands),
+		f0Candidate:       make([]candidate, p.f0Length),
+		temporalPositions: make([]float64, p.f0Length),
 		f0:                make([]float64, p.f0Length),
 	}
-
-	s.ySpectrum = make([]complex128, s.fftSize)
-	s.zeroCrossings = newZeroCrossings(s.yLength)
-	s.f0Candidates = make([][]candidate, s.numberOfBands)
-	for i := 0; i < s.numberOfBands; i++ {
-		s.f0Candidates[i] = make([]candidate, s.f0Length)
+	for i := range s.f0Candidates {
+		s.f0Candidates[i] = make([]candidate, p.f0Length)
 	}
-
+	for i := range s.temporalPositions {
+		s.temporalPositions[i] = float64(i) * p.option.FramePeriod / 1000.0
+	}
 	return s
 }
 
