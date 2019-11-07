@@ -75,7 +75,7 @@ func TestDio(t *testing.T) {
 				}
 			}
 
-			noiseAmp := math.Pow(2, noiseDB)
+			noiseAmp := math.Pow(10, noiseDB/20.0)
 			r := xorShift64Star{state: 1}
 			for i := range x {
 				v := r.nextFloat64()

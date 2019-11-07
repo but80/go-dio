@@ -143,7 +143,7 @@ void exampleDio(const char *file, int noiseDB, bool reverse) {
 		}
 	}
 
-	double noiseAmp = pow(2.0, noiseDB);
+	double noiseAmp = pow(10.0, noiseDB/20.0);
 	XorShift64Star r(1);
 	for (int i=0; i<info.frames; i++) {
 		double v = r.nextDouble();

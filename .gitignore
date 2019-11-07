@@ -1,4 +1,5 @@
 *.dat
+*.csv
 *.wav
 *.bak
 /tools/world-cpp
