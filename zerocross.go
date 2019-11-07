@@ -27,6 +27,7 @@ func newZeroCrossings(capacity int) *zeroCrossings {
 // zeroCrossingEngine calculates the zero crossing points from positive to
 // negative. Thanks to Custom.Maid http://custom-made.seesaa.net/ (2012/8/19)
 func zeroCrossingEngine(filteredSignal []float64, fs float64, intervals *[]interval) {
+	*intervals = (*intervals)[:0]
 	n := len(filteredSignal)
 	negativeGoingPoints := make([]int, n)
 
@@ -56,7 +57,6 @@ func zeroCrossingEngine(filteredSignal []float64, fs float64, intervals *[]inter
 		fineEdges[i] = float64(edges[i]) - filteredSignal[edges[i]-1]/d
 	}
 
-	*intervals = (*intervals)[:0]
 	for i := 0; i < count-1; i++ {
 		*intervals = append(*intervals, interval{
 			interval: fs / (fineEdges[i+1] - fineEdges[i]),

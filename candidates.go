@@ -51,12 +51,12 @@ func (s *Session) getFilteredSignal(halfAverageLength int, filteredSignal []floa
 // the differential of waveform.
 func (s *Session) getFourZeroCrossingIntervals(filteredSignal []float64) {
 	// xLength / 4 (old version) is fixed at 2013/07/14
-	zeroCrossingEngine(filteredSignal, s.fs, &s.zeroCrossings.negatives)
+	zeroCrossingEngine(filteredSignal[:s.yLength], s.fs, &s.zeroCrossings.negatives)
 
 	for i, v := range filteredSignal {
 		filteredSignal[i] = -v
 	}
-	zeroCrossingEngine(filteredSignal, s.fs, &s.zeroCrossings.positives)
+	zeroCrossingEngine(filteredSignal[:s.yLength], s.fs, &s.zeroCrossings.positives)
 
 	for i := 0; i < s.yLength-1; i++ {
 		filteredSignal[i] -= filteredSignal[i+1]
