@@ -3,10 +3,11 @@ package dio
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
+	"math"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -40,13 +41,23 @@ func TestSession(t *testing.T) {
 		wantb, err := cmd.Output()
 		assert.NoError(t, err)
 		want := string(wantb)
-		want = rx1.ReplaceAllString(want, "")
+		want = rx1.ReplaceAllString(want, "") // remove temporal positions
+
+		wantsa := strings.Split(want, "\n")
+		var wantfa []float64
+		for _, s := range wantsa {
+			v, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				continue
+			}
+			wantfa = append(wantfa, v)
+		}
 
 		x, fs, err := testasset.Load(path)
 		assert.NoError(t, err)
 
 		s := NewSession(float64(fs), nil)
-		log.Printf("%#v", s.Estimator.params)
+		// log.Printf("%#v", s.Estimator.params)
 		step := s.Len() / 2
 		var result []float64
 		for i := 0; i+step < len(x); i += step {
@@ -66,14 +77,34 @@ func TestSession(t *testing.T) {
 			result = append(result, f0[from:to]...)
 		}
 
+		diffSum := .0
+		diffCount := 0
+		zeroCount := 0
 		got := ""
-		for i := range result {
-			g := fmt.Sprintf("%05.1f\n", result[i])
-			// log.Print(g)
-			got += g
+		for i, g := range result {
+			got += fmt.Sprintf("%05.1f\n", g)
+			if len(wantfa) <= i {
+				continue
+			}
+			w := wantfa[i]
+			if g == 0 && w == 0 {
+				diffCount++
+				continue
+			}
+			if g == 0 && w != 0 || g != 0 && w == 0 {
+				zeroCount++
+				continue
+			}
+			d := math.Log2(g/w) * 12
+			diffSum += d * d
+			diffCount++
 		}
-		assert.Equal(t, want, got, file.Name())
+		diff := math.Sqrt(diffSum / float64(diffCount))
+		zero := float64(zeroCount) / float64(zeroCount+diffCount)
+		assert.True(t, diff < .05, fmt.Sprintf("RMSE of pitch = %f [semitone]", diff))
+		assert.True(t, zero*100 < .5, fmt.Sprintf("Ratio of frames errored to be silent or not = %f [%%]", zero*100))
 
+		// Output CSV
 		wanta := strings.Split(want, "\n")
 		gota := strings.Split(got, "\n")
 		var csvn int

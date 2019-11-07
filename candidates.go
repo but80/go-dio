@@ -8,15 +8,6 @@ import (
 	"github.com/but80/go-dio/internal/matlab"
 )
 
-// checkEvent returns 1, provided that the input value is over 1.
-// This function is for RawEventByDio().
-func checkEvent(x int) int {
-	if 0 < x {
-		return 1
-	}
-	return 0
-}
-
 // getFilteredSignal calculates the signal that is the convolution of the
 // input signal and low-pass filter.
 // This function is only used in rawEventByDio()
@@ -99,10 +90,10 @@ func (s *Estimator) getF0CandidateContourSub(interpolatedF0Set [4][]float64, bou
 // getF0CandidateContour() calculates the F0 candidates based on the
 // zero-crossings.
 func (s *Estimator) getF0CandidateContour(boundaryF0 float64) {
-	if 0 == checkEvent(len(s.zeroCrossings.negatives)-2)*
-		checkEvent(len(s.zeroCrossings.positives)-2)*
-		checkEvent(len(s.zeroCrossings.peaks)-2)*
-		checkEvent(len(s.zeroCrossings.dips)-2) {
+	if len(s.zeroCrossings.negatives) <= 2 ||
+		len(s.zeroCrossings.positives) <= 2 ||
+		len(s.zeroCrossings.peaks) <= 2 ||
+		len(s.zeroCrossings.dips) <= 2 {
 		for i := 0; i < s.f0Length; i++ {
 			s.f0Candidate[i] = candidate{
 				f0:    0.0,
