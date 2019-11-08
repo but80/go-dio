@@ -8,34 +8,36 @@ import (
 	"github.com/but80/go-dio/internal/matlab"
 )
 
-// checkEvent returns 1, provided that the input value is over 1.
-// This function is for RawEventByDio().
-func checkEvent(x int) int {
-	if 0 < x {
-		return 1
+func (s *Estimator) nuttallWindowSpectrum(result []complex128, halfAverageLength int) {
+	if lpfSpectrum, ok := s.lpfSpectrum[halfAverageLength]; ok {
+		copy(result, lpfSpectrum)
+		return
 	}
-	return 0
+
+	lpf := make([]float64, s.fftSize)
+	// Nuttall window is used as a low-pass filter.
+	// Cutoff frequency depends on the window length.
+	common.NuttallWindow(lpf[:halfAverageLength*4])
+	lpfSpectrum := make([]complex128, s.fftSize/2+1)
+	s.fft.Coefficients(lpfSpectrum, lpf)
+	s.lpfSpectrum[halfAverageLength] = lpfSpectrum
+	copy(result, lpfSpectrum)
 }
 
 // getFilteredSignal calculates the signal that is the convolution of the
 // input signal and low-pass filter.
 // This function is only used in rawEventByDio()
 func (s *Estimator) getFilteredSignal(halfAverageLength int, filteredSignal []float64) {
-	lpf := make([]float64, s.fftSize)
-	// Nuttall window is used as a low-pass filter.
-	// Cutoff frequency depends on the window length.
-	common.NuttallWindow(lpf[:halfAverageLength*4])
-
-	lpfSpectrum := make([]complex128, s.fftSize/2+1)
-	s.fft.Coefficients(lpfSpectrum, lpf)
+	spectrum := make([]complex128, s.fftSize/2+1)
+	s.nuttallWindowSpectrum(spectrum, halfAverageLength)
 
 	// Convolution
-	lpfSpectrum[0] *= s.ySpectrum[0]
+	spectrum[0] *= s.ySpectrum[0]
 	for i := 1; i <= s.fftSize/2; i++ {
-		lpfSpectrum[i] *= s.ySpectrum[i]
+		spectrum[i] *= s.ySpectrum[i]
 	}
 
-	s.fft.Sequence(filteredSignal, lpfSpectrum)
+	s.fft.Sequence(filteredSignal, spectrum)
 
 	// Compensation of the delay.
 	indexBias := halfAverageLength * 2
@@ -99,10 +101,10 @@ func (s *Estimator) getF0CandidateContourSub(interpolatedF0Set [4][]float64, bou
 // getF0CandidateContour() calculates the F0 candidates based on the
 // zero-crossings.
 func (s *Estimator) getF0CandidateContour(boundaryF0 float64) {
-	if 0 == checkEvent(len(s.zeroCrossings.negatives)-2)*
-		checkEvent(len(s.zeroCrossings.positives)-2)*
-		checkEvent(len(s.zeroCrossings.peaks)-2)*
-		checkEvent(len(s.zeroCrossings.dips)-2) {
+	if len(s.zeroCrossings.negatives) <= 2 ||
+		len(s.zeroCrossings.positives) <= 2 ||
+		len(s.zeroCrossings.peaks) <= 2 ||
+		len(s.zeroCrossings.dips) <= 2 {
 		for i := 0; i < s.f0Length; i++ {
 			s.f0Candidate[i] = candidate{
 				f0:    0.0,
