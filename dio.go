@@ -97,6 +97,7 @@ type Estimator struct {
 	zeroCrossings *zeroCrossings
 	f0Candidates  [][]candidate
 	f0Candidate   []candidate
+	lpfSpectrum   map[int][]complex128
 
 	// Outputs
 	temporalPositions []float64 // Temporal positions.
@@ -121,6 +122,7 @@ func newEstimator(p *params) *Estimator {
 		zeroCrossings:     newZeroCrossings(p.yLength),
 		f0Candidates:      make([][]candidate, p.numberOfBands),
 		f0Candidate:       make([]candidate, p.f0Length),
+		lpfSpectrum:       make(map[int][]complex128),
 		temporalPositions: make([]float64, p.f0Length),
 		f0:                make([]float64, p.f0Length),
 	}
