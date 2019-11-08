@@ -1,6 +1,10 @@
 package dio
 
-import "math"
+import (
+	"math"
+
+	"github.com/but80/go-dio/internal/common"
+)
 
 type Session struct {
 	*Estimator
@@ -41,7 +45,7 @@ func (s *Session) FramePeriod() float64 {
 	return s.Estimator.params.option.FramePeriod
 }
 
-func (s *Session) Next(x []float64) []float64 {
+func (s *Session) Estimate(x []float64) []float64 {
 	if len(x) < s.Len() {
 		x = append(x, make([]float64, s.Len()-len(x))...)
 	}
@@ -52,4 +56,39 @@ func (s *Session) Next(x []float64) []float64 {
 	s.Estimator.x = x
 	_, f0 := s.Estimator.Estimate()
 	return f0
+}
+
+func (s *Session) Start() (chan<- []float64, <-chan []float64) {
+	input := make(chan []float64, 1000)
+	output := make(chan []float64, 1000)
+	go func() {
+		var buffer []float64
+		step := s.Len() / 2
+		from := 0
+		for {
+			inputWave, inputOk := <-input
+			if inputOk {
+				buffer = append(buffer, inputWave...)
+			}
+
+			for s.Len() <= len(buffer) || 0 < len(buffer) && !inputOk {
+				j := common.MinInt(s.Len(), len(buffer))
+				f0 := s.Estimate(buffer[:j])
+				buffer = buffer[common.MinInt(step, len(buffer)):]
+				to := s.F0Length() * 3 / 4
+				if j == len(buffer) && !inputOk {
+					to = s.F0Length()
+					buffer = buffer[:0]
+				}
+				output <- f0[from:to]
+				from = s.F0Length() / 4
+			}
+
+			if !inputOk {
+				break
+			}
+		}
+		close(output)
+	}()
+	return input, output
 }

@@ -3,7 +3,9 @@ package dio
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
+	"math/rand"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -30,6 +32,7 @@ func TestSession(t *testing.T) {
 			continue
 		}
 		path := filepath.Join(testdataDir, file.Name())
+		log.Printf("path = %s", path)
 
 		cmd := exec.Command(
 			"./tools/make-testdata",
@@ -57,24 +60,24 @@ func TestSession(t *testing.T) {
 		assert.NoError(t, err)
 
 		s := NewSession(float64(fs), nil)
-		// log.Printf("%#v", s.Estimator.params)
-		step := s.Len() / 2
+		in, out := s.Start()
+		go func() {
+			r := rand.New(rand.NewSource(1))
+			k := len(x) / 100
+			for 0 < len(x) {
+				n := r.Intn(k) + 1
+				if len(x) < n {
+					n = len(x)
+				}
+				in <- x[:n]
+				x = x[n:]
+				// time.Sleep(time.Millisecond * 10)
+			}
+			close(in)
+		}()
 		var result []float64
-		for i := 0; i+step < len(x); i += step {
-			j := i + s.Len()
-			if len(x) < j {
-				j = len(x)
-			}
-			f0 := s.Next(x[i:j])
-			from := 0
-			if 0 < i {
-				from = s.F0Length() / 4
-			}
-			to := s.F0Length()
-			if i+step+step < len(x) {
-				to = s.F0Length() * 3 / 4
-			}
-			result = append(result, f0[from:to]...)
+		for f0 := range out {
+			result = append(result, f0...)
 		}
 
 		diffSum := .0
